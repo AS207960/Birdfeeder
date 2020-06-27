@@ -1,0 +1,31 @@
+public: # About you
+  asn: 207960
+boxes:
+  core1_fra1:
+    ips: # Our IP's
+      v4: "45.129.95.3"
+      v6: "2a0d:1a40:7900:8::1"
+    internal:
+    native:
+    ixs:
+      KleyReX:
+        ips: # Internal IP for IXP
+          v4: "193.189.83.70"
+          v6: "2001:7f8:33::a120:7960:1"
+        peers:
+          "6939":
+            ips:
+              v4: "193.189.82.134"
+              v6: "2001:7f8:33::a100:6939:1"
+          "13335":
+            ips:
+              v4: "193.189.82.195"
+              v6: "2001:7f8:33::a101:3335:1"
+      LocIX FRA:
+        ips: # Internal IP for IXP
+          v4: ""
+          v6: ""
+        peers:
+peeringdb:
+  user: ""
+  pass: ""
