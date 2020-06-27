@@ -1,4 +1,5 @@
 import requests
+from makeFilter import makeFilter
 from pprint import pprint
 from jinja2 import Environment, FileSystemLoader
 from ipaddress import IPv4Address, IPv6Address, ip_address
@@ -13,7 +14,12 @@ with open("config.yml") as config:
 
 
 def templateBuild(
-    ixp: str, peer_asn: int, peer_ip: str, public_ip: str, public_asn: int, password: Optional[str] = None,
+    ixp: str,
+    peer_asn: int,
+    peer_ip: str,
+    public_ip: str,
+    public_asn: int,
+    password: Optional[str] = None,
 ):
     """
     ixp: str,
@@ -36,8 +42,10 @@ def templateBuild(
     env.rstrip_blocks = True
 
     if type(peer_ip_a) is IPv4Address and type(public_ip_a) is IPv4Address:
+        ip_type = "v4"
         template = env.get_template("./v4_template.jinja2")
     elif type(peer_ip_a) is IPv6Address and type(public_ip_a) is IPv6Address:
+        ip_type = "v6"
         template = env.get_template("./v6_template.jinja2")
     else:
         exit(1)
@@ -53,6 +61,10 @@ def templateBuild(
     else:
         exit(1)
 
+    # Make filter
+
+    filter = makeFilter(ip_type, peer_asn)
+
     output = template.render(
         ixp=ixp,
         peer_asn=peer_asn,
@@ -61,6 +73,7 @@ def templateBuild(
         public_ip=public_ip,
         public_asn=public_asn,
         password=password,
+        filter=filter,
     )
     print(output)
-    return(output)
+    return output
