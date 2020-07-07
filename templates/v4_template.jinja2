@@ -1,6 +1,8 @@
+define {{filter}}
+
 protocol bgp {{ ixp }}_as{{ peer_asn }}_v4 {
   description "{{ ixp }} - {{ peer_name }} - AS{{ peer_asn }} - IPv4";
-  local {{ public_ip }} as {{ local_asn }};
+  local {{ public_ip }} as {{ public_asn }};
   confederation 207960;
   confederation member no;
   neighbor {{ peer_ip }} as {{ peer_asn }};
@@ -10,7 +12,8 @@ protocol bgp {{ ixp }}_as{{ peer_asn }}_v4 {
   ipv4 {
     import keep filtered yes;
     import filter {
-      bgp_large_community.add(({{ local_asn }},0,{{ peer_asn }}));
+      as{{peer_asn}}_filter();
+      bgp_large_community.add(({{ public_asn }},0,{{ peer_asn }}));
       external_in_v4();
     };
     export filter {

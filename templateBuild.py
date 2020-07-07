@@ -75,5 +75,8 @@ def templateBuild(
         password=password,
         filter=filter,
     )
-    print(output)
+    pprint(output)
+    with open("a.txt", "w") as a:
+        a.write(output)
+
     return output

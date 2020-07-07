@@ -1,5 +1,6 @@
 import subprocess
 from pprint import pprint
+from bgpq import bgpq4, bgpq3
 
 
 def makeFilter(ipType: str, peer_asn: int):
@@ -10,35 +11,19 @@ def makeFilter(ipType: str, peer_asn: int):
     """
 
     if ipType == "v4":
-        filter = subprocess.run(
-            [
-                "/usr/bin/env",
-                "bgpq4",
-                "-4",
-                "-b",
-                "-l",
-                f"as{peer_asn}_filter",
-                f"AS{peer_asn}",
-            ],
-            capture_output=True,
+        filter = bgpq4(
+            peer_asn,
+            flags=["-4", "-A", "-b", "-l", f"as{peer_asn}_filter", f"AS{peer_asn}",],
         )
     elif ipType == "v6":
-        filter = subprocess.run(
-            [
-                "/usr/bin/env",
-                "bgpq4",
-                "-6",
-                "-b",
-                "-l",
-                f"as{peer_asn}_filter",
-                f"AS{peer_asn}",
-            ],
-            capture_output=True,
+        filter = bgpq4(
+            peer_asn,
+            flags=["-6", "-A", "-b", "-l", f"as{peer_asn}_filter", f"AS{peer_asn}",],
         )
     else:
         exit(1)
 
-    return filter.stdout.splitlines()
+    return filter
 
 
 # filter = os.popen(f"bgpq4 -6 -b -l as{peer_asn}_filter AS{peer_asn}").read()
