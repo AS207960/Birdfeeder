@@ -15,6 +15,7 @@ with open("config.yml") as config:
 
 def templateBuild(
     ixp: str,
+    ixp_id: int,
     peer_asn: int,
     peer_ip: str,
     public_ip: str,
@@ -51,16 +52,36 @@ def templateBuild(
         exit(1)
 
     # PeeringDB query for ASN Name
-    pdb_lookup = requests.get(
+    pdb_name_query_lookup = requests.get(
         "https://peeringdb.com/api/net",
         auth=(configparsed["peeringdb"]["user"], configparsed["peeringdb"]["pass"]),
         params={"asn": peer_asn},
     )
     if pdb_lookup.status_code == 200:
-        peer_name = pdb_lookup.json()["data"][0]["name"]
+        peer_name = pdb_name_query_lookup.json()["data"][0]["name"]
+        peer_id = pdb_name_query_lookup.json()["data"][0]["id"]
     else:
         exit(1)
 
+    pdb_peer_ip_lookup_via_ix = requests.get(
+        "https://peeringdb.com/api/netixlan",
+        auth=(configparsed["peeringdb"]["user"], configparsed["peeringdb"]["pass"]),
+        params={"net_id": peer_id},
+    )
+
+    for ixp in pdb_peer_ip_lookup_via_ix:
+        if ixp["ix_id"] is ixp_id:
+            if ixp["ipaddr4"] is None:
+                pass
+            else:
+                peer_ip_4 = ixp["ipaddr4"]
+
+            if ixp["ipaddr6"] is None:
+                pass
+            else:
+                peer_ip_6 = ixp["ipaddr6"]
+        else:
+            pass
     # Make filter
 
     filter = makeFilter(ip_type, peer_asn)

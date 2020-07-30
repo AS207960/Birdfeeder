@@ -1,6 +1,7 @@
 import subprocess
 from typing import Optional
 
+
 def bgpq3(peer_asn: int, flags: Optional[list] = None):
 
     """
@@ -35,9 +36,7 @@ def bgpq3(peer_asn: int, flags: Optional[list] = None):
             f"AS{peer_asn}",
         ]
 
-    output = subprocess.check_output(
-        ["/usr/bin/env", "bgpq3", *flags],
-    )
+    output = subprocess.check_output(["/usr/bin/env", "bgpq3", *flags],)
 
     return output.rstrip().decode("utf-8")
 
@@ -77,8 +76,6 @@ def bgpq4(peer_asn: int, flags: Optional[list] = None):
             f"AS{peer_asn}",
         ]
 
-    output = subprocess.check_output(
-        ["/usr/bin/env", "bgpq4", *flags],
-    )
+    output = subprocess.check_output(["/usr/bin/env", "bgpq4", *flags],)
 
     return output.rstrip().decode("utf-8")

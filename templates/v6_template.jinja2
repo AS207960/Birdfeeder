@@ -12,10 +12,10 @@ protocol bgp {{ ixp }}_as{{ peer_asn }}_v6 {
     import filter {
       {{filter}}
       bgp_large_community.add(({{ public_asn }},0,{{ peer_asn }}));
-      external_in_v6();
+      external_in();
     };
     export filter {
-      external_out_v6();
+      external_out();
     };
   };
 }
