@@ -1,5 +1,6 @@
 import requests
 from makeFilter import makeFilter
+from pdb import pdb
 from pprint import pprint
 from jinja2 import Environment, FileSystemLoader
 from ipaddress import IPv4Address, IPv6Address, ip_address
@@ -33,8 +34,8 @@ def templateBuild(
     """
     #    peer_name: str,
 
-    peer_ip_a = ip_address(peer_ip)
-    public_ip_a = ip_address(public_ip)
+    test = pdb(input("ixp id: "), input("peer asn: "), input("local asn: "))
+    pprint(test)
 
     file_loader = FileSystemLoader("templates")
     env = Environment(loader=file_loader)
@@ -42,49 +43,16 @@ def templateBuild(
     env.lstrip_blocks = True
     env.rstrip_blocks = True
 
-    if type(peer_ip_a) is IPv4Address and type(public_ip_a) is IPv4Address:
+    if type(ip_address(test["peer"]["ipv4"])) is IPv4Address and type(ip_address(test["local"]["ipv4"])) is IPv4Address:
         ip_type = "v4"
         template = env.get_template("./v4_template.jinja2")
-    elif type(peer_ip_a) is IPv6Address and type(public_ip_a) is IPv6Address:
+    elif type(ip_address(test["peer"]["ipv6"])) is IPv6Address and type(ip_address(test["local"]["ipv6"])) is IPv6Address:
         ip_type = "v6"
         template = env.get_template("./v6_template.jinja2")
     else:
         exit(1)
 
-    # PeeringDB query for ASN Name
-    pdb_name_query_lookup = requests.get(
-        "https://peeringdb.com/api/net",
-        auth=(configparsed["peeringdb"]["user"], configparsed["peeringdb"]["pass"]),
-        params={"asn": peer_asn},
-    )
-    if pdb_lookup.status_code == 200:
-        peer_name = pdb_name_query_lookup.json()["data"][0]["name"]
-        peer_id = pdb_name_query_lookup.json()["data"][0]["id"]
-    else:
-        exit(1)
-
-    pdb_peer_ip_lookup_via_ix = requests.get(
-        "https://peeringdb.com/api/netixlan",
-        auth=(configparsed["peeringdb"]["user"], configparsed["peeringdb"]["pass"]),
-        params={"net_id": peer_id},
-    )
-
-    for ixp in pdb_peer_ip_lookup_via_ix:
-        if ixp["ix_id"] is ixp_id:
-            if ixp["ipaddr4"] is None:
-                pass
-            else:
-                peer_ip_4 = ixp["ipaddr4"]
-
-            if ixp["ipaddr6"] is None:
-                pass
-            else:
-                peer_ip_6 = ixp["ipaddr6"]
-        else:
-            pass
-    # Make filter
-
-    filter = makeFilter(ip_type, peer_asn)
+    filter = makeFilter(ip, peer_asn)
 
     output = template.render(
         ixp=ixp,

@@ -106,8 +106,8 @@ def pdb(ixp_id: int, peer_asn: int, local_asn: int):
             else:
                 returnables["peer"]["ipv6"] = ixp["ipaddr6"]
 
-    else:
-        pass
+        else:
+            pass
 
     # Local IPs on IX
     for ixp in pdb_local_lookup_on_ix:
@@ -121,9 +121,8 @@ def pdb(ixp_id: int, peer_asn: int, local_asn: int):
                 pass
             else:
                 returnables["local"]["ipv6"] = ixp["ipaddr6"]
-
-    else:
-        pass
+        else:
+            pass
 
     # pprint(returnables)
     return returnables

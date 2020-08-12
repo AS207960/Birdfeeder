@@ -1,27 +1,28 @@
 import subprocess
 from pprint import pprint
 from bgpq import bgpq4, bgpq3
+from ipaddress import IPv4Address, IPv6Address, ip_address
 
 
-def makeFilter(ipType: str, peer_asn: int):
+def makeFilter(ip: str, peer_asn: int):
     """
 
     bgpq4
     
     """
 
-    if ipType == "v4":
+    if type(ip_address(ip)) is IPv4Address:
         filter = bgpq4(
             peer_asn,
             flags=["-4", "-A", "-b", "-l", f"as{peer_asn}_filter", f"AS{peer_asn}",],
         )
-    elif ipType == "v6":
+    elif type(ip_address(ip)) is IPv6Address:
         filter = bgpq4(
             peer_asn,
             flags=["-6", "-A", "-b", "-l", f"as{peer_asn}_filter", f"AS{peer_asn}",],
         )
     else:
-        exit(1)
+        raise ("IP/ASN is incorrect")
 
     return filter
 
