@@ -19,7 +19,9 @@ def pdb(ixp_id: int, peer_asn: int, local_asn: int):
 
     returnables = {}
     returnables["peer"] = {}
+    returnables["peer"]["asn"] = peer_asn
     returnables["local"] = {}
+    returnables["local"]["asn"] = local_asn
 
     # PeeringDB query for Peer Network
     try:

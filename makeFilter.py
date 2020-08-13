@@ -11,12 +11,14 @@ def makeFilter(ip: str, peer_asn: int):
     
     """
 
-    if type(ip_address(ip)) is IPv4Address:
+    ip_parsed = ip_address(ip)
+
+    if type(ip_parsed) is IPv4Address:
         filter = bgpq4(
             peer_asn,
             flags=["-4", "-A", "-b", "-l", f"as{peer_asn}_filter", f"AS{peer_asn}",],
         )
-    elif type(ip_address(ip)) is IPv6Address:
+    elif type(ip_parsed) is IPv6Address:
         filter = bgpq4(
             peer_asn,
             flags=["-6", "-A", "-b", "-l", f"as{peer_asn}_filter", f"AS{peer_asn}",],

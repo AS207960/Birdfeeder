@@ -1,0 +1,42 @@
+
+define 
+
+protocol bgp KleyReX_as207960_v4 {
+  description "KleyReX - AS207960 Cyfyngedig - AS207960 - IPv4";
+  local 193.189.83.70 as 207960;
+  confederation 207960;
+  confederation member no;
+  neighbor 193.189.83.70 as 207960;
+  ipv4 {
+    import keep filtered yes;
+    import filter {
+      as207960_filter();
+      bgp_large_community.add((207960,0,207960));
+      external_in_v4();
+    };
+    export filter {
+      external_out_v4();
+    };
+  };
+}
+protocol bgp KleyReX_as207960_v6 {
+  description "KleyReX - AS207960 Cyfyngedig - AS207960 - IPv6";
+  local 193.189.83.70 as 207960;
+  confederation 207960;
+  confederation member no;
+  neighbor 193.189.83.70 as 207960;
+  ipv6 {
+    import keep filtered yes;
+    import filter {
+      as6369_filter = [
+    2a0a:acc0::/32,
+    2a0a:acc0::/48
+];
+      bgp_large_community.add((207960,0,207960));
+      external_in();
+    };
+    export filter {
+      external_out();
+    };
+  };
+}
