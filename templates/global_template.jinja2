@@ -1,0 +1,329 @@
+{{ global_config }}
+
+log syslog { info, warning, error, auth, fatal, bug };
+router id {{ router_id }};
+
+define BOGON_ASNS = [ 0, 23456, 64496..64511, 64512..65534, 65535, 65536..65551, 65552..131071, 4200000000..4294967294, 4294967295 ];
+define BOGON_ASNS_INT = [ 0, 23456, 64496..64511, 65535, 65536..65551, 65552..131071, 4294967295 ];
+define BOGON_PREFIXES_V4 = [ 0.0.0.0/8+, 10.0.0.0/8+, 100.64.0.0/10+, 127.0.0.0/8+, 169.254.0.0/16+, 172.16.0.0/12+, 192.0.2.0/24+, 92.88.99.0/24+, 192.168.0.0/16+, 198.18.0.0/15+, 198.51.100.0/24+, 203.0.113.0/24+, 224.0.0.0/4+, 240.0.0.0/4+ ];
+define BOGON_PREFIXES_V4_INT = [ 0.0.0.0/8+, 127.0.0.0/8+, 169.254.0.0/16+, 192.0.2.0/24+, 92.88.99.0/24+, 198.18.0.0/15+, 198.51.100.0/24+, 203.0.113.0/24+, 224.0.0.0/4+, 240.0.0.0/4+ ];
+define BOGON_PREFIXES = [ ::/8+, 0100::/64+, 2001:2::/48+, 2001:10::/28+, 2001:db8::/32+, 2002::/16+, 3ffe::/16+, fc00::/7+, fe80::/10+, fec0::/10+, ff00::/8+ ];
+define BOGON_PREFIXES_INT = [ ::/8+, 0100::/64+, 2001:2::/48+, 2001:10::/28+, 2001:db8::/32+, 2002::/16+, 3ffe::/16+, fe80::/10+, fec0::/10+, ff00::/8+ ];
+
+define NOT_OURS_PREFIXES = [ 2001:7f8:33::/48+, 2001:7f8:f2::/48+, 2a0c:9a40:1::/48, 2001:470:11:35::/64+, 2a0e:46c6:0:8::/64+, 2602:fed2:fff:ffff::/64+, 2001:7f8:d0::/48+, 2001:7f8:da::/64+, 2001:19f0:7402:cc7::/64+ ];
+define NOT_OURS_PREFIXES_V4 = [ 193.189.82.0/23+, 185.1.166.0/23+, 193.148.249.0/24+ ];
+
+function reject_not_ours()
+prefix set not_ours;
+int set bogon_asns;
+{
+  not_ours = NOT_OURS_PREFIXES;
+  bogon_asns = BOGON_ASNS;
+  if (net ~ not_ours && (bgp_path.last = 207960 || bgp_path.last ~ bogon_asns)) then {
+    reject;
+  }
+}
+
+function reject_not_ours_v4()
+prefix set not_ours;
+int set bogon_asns;
+{
+  not_ours = NOT_OURS_PREFIXES_V4;
+  bogon_asns = BOGON_ASNS;
+  if (net ~ not_ours && (bgp_path.last = 207960 || bgp_path.last ~ bogon_asns)) then {
+    reject;
+  }
+}
+
+function reject_bogon_asns()
+int set bogon_asns;
+{
+  bogon_asns = BOGON_ASNS;
+  if ( bgp_path ~ bogon_asns ) then {
+   reject;
+  }
+}
+function reject_bogon_asns_int()
+int set bogon_asns;
+{
+  bogon_asns = BOGON_ASNS_INT;
+  if ( bgp_path ~ bogon_asns ) then {
+   reject;
+  }
+}
+function reject_bogon_prefixes_v4()
+prefix set bogon_prefixes;
+{
+  bogon_prefixes = BOGON_PREFIXES_V4;
+  if (net ~ bogon_prefixes) then {
+    reject;
+  }
+}
+function reject_bogon_prefixes_v4_int()
+prefix set bogon_prefixes;
+{
+  bogon_prefixes = BOGON_PREFIXES_V4_INT;
+  if (net ~ bogon_prefixes) then {
+    reject;
+  }
+}
+function reject_small_prefixes_v4() {
+  if (net.len > 24) then {
+    reject;
+  }
+}
+
+function reject_bogon_prefixes()
+prefix set bogon_prefixes;
+{
+  bogon_prefixes = BOGON_PREFIXES;
+  if (net ~ bogon_prefixes) then {
+    reject;
+  }
+}
+function reject_bogon_prefixes_int()
+prefix set bogon_prefixes;
+{
+  bogon_prefixes = BOGON_PREFIXES_INT;
+  if (net ~ bogon_prefixes) then {
+    reject;
+  }
+}
+function reject_small_prefixes() {
+  if (net.len > 48) then {
+    reject;
+  }
+}
+function reject_long_aspaths() {
+  if ( bgp_path.len > 60 ) then {
+   reject;
+  }
+}
+function honor_graceful_shutdown() {
+  if (65535, 0) ~ bgp_community then {
+    bgp_local_pref = 0;
+  }
+}
+function reject_non_downstream_source() {
+  if (207960, 1, 0) ~ bgp_large_community then {
+    reject;
+  }
+  if (207960, 1, 1) ~ bgp_large_community then {
+    reject;
+  }
+  if (207960, 1, 3) ~ bgp_large_community then {
+    reject;
+  }
+}
+
+protocol direct {
+  ipv6;
+  ipv4;
+  interface -95.179.236.0/23, -193.148.249.0/24, "*";
+}
+
+protocol kernel {
+  learn;
+  persist;
+  scan time 60;
+  ipv4 { export all; };
+}
+protocol kernel {
+  learn;
+  persist;
+  scan time 60;
+  ipv6 { export all; };
+}
+
+protocol device {
+  scan time 10;         # Scan interfaces every 10 seconds
+}
+
+protocol static {
+  ipv4;
+  route 45.129.95.0/24 reject;
+}
+
+protocol static {
+  ipv6;
+  route 2a0d:1a40:7900::/48 reject;
+  route 2a0d:1a40:7901::/48 reject;
+  route 2a0e:1cc1::/48 reject;
+  route 2a0e:1cc1:1::/48 reject;
+}
+
+roa4 table r4;
+roa6 table r6;
+protocol rpki routinator {
+  roa4 { table r4; };
+  roa6 { table r6; };
+
+  remote 2a0d:1a40:7900:2::1 port 3323;
+
+  retry keep 90;
+  refresh keep 900;
+  expire keep 172800;
+}
+function reject_roa4_invalid() {
+  if (roa_check(r4, net, bgp_path.last) = ROA_INVALID) then {
+    bgp_ext_community.add((unknown 0x4300, 0, 2));
+    reject;
+  } else if (roa_check(r4, net, bgp_path.last) = ROA_VALID) then {
+    bgp_ext_community.add((unknown 0x4300, 0, 0));
+  } else {
+    bgp_ext_community.add((unknown 0x4300, 0, 1));
+  }
+}
+function reject_roa6_invalid() {
+  if (roa_check(r6, net, bgp_path.last) = ROA_INVALID) then {
+    bgp_ext_community.add((unknown 0x4300, 0, 2));
+    reject;
+  } else if (roa_check(r6, net, bgp_path.last) = ROA_VALID) then {
+    bgp_ext_community.add((unknown 0x4300, 0, 0));
+  } else {
+    bgp_ext_community.add((unknown 0x4300, 0, 1));
+  }
+}
+
+function external_out_v4()
+prefix set announce_prefixes;
+int set announce_asns;
+{
+  announce_prefixes = ANNOUNCE_PREFIXES_V4;
+  announce_asns = ANNOUNCE_ASNS;
+  reject_not_ours_v4();
+  reject_bogon_asns_int();
+  reject_bogon_prefixes_v4();
+  reject_small_prefixes_v4();
+  reject_non_downstream_source();
+  if net = 0.0.0.0/0 then reject;
+  bgp_path.delete(207960);
+  if (net ~ announce_prefixes) then {
+    accept;
+  } else {
+    reject;
+  }
+}
+function external_out()
+prefix set announce_prefixes;
+int set announce_asns;
+{
+  announce_prefixes = ANNOUNCE_PREFIXES;
+  announce_asns = ANNOUNCE_ASNS;
+  reject_not_ours();
+  reject_bogon_asns_int();
+  reject_bogon_prefixes();
+  reject_small_prefixes();
+  reject_non_downstream_source();
+  if net = ::/0 then reject;
+  bgp_path.delete(207960);
+  if (net ~ announce_prefixes) then {
+    accept;
+  } else {
+    reject;
+  }
+}
+function downstream_out_v4()
+{
+  reject_not_ours_v4();
+  reject_bogon_asns_int();
+  reject_bogon_prefixes_v4();
+  reject_small_prefixes_v4();
+  if net = 0.0.0.0/0 then reject;
+  bgp_path.delete(207960);
+  accept;
+}
+function downstream_out()
+{
+  reject_not_ours();
+  reject_bogon_asns_int();
+  reject_bogon_prefixes();
+  reject_small_prefixes();
+  if net = ::/0 then reject;
+  bgp_path.delete(207960);
+  accept;
+}
+function internal_out_v4() {
+  reject_not_ours_v4();
+  reject_bogon_asns_int();
+  reject_bogon_prefixes_v4_int();
+  if net = 0.0.0.0/0 then reject;
+  bgp_path.prepend(207960);
+  bgp_local_pref = preference;
+  accept;
+}
+function internal_out() {
+  reject_not_ours();
+  reject_bogon_asns_int();
+  reject_bogon_prefixes_int();
+  if net = ::/0 then reject;
+  bgp_path.prepend(207960);
+  bgp_local_pref = preference;
+  accept;
+}
+
+function external_in_v4() {
+  reject_bogon_asns();
+  reject_bogon_prefixes_v4();
+  reject_small_prefixes_v4();
+  reject_long_aspaths();
+  reject_roa4_invalid();
+  if net = 0.0.0.0/0 then reject;
+  {% if pref_src_v4 %}krt_prefsrc = {{ pref_src_v4 }};{% endif %}
+  honor_graceful_shutdown();
+  bgp_large_community.delete([(207960, 0, *)]);
+  accept;
+}
+function external_in() {
+  reject_bogon_asns();
+  reject_bogon_prefixes();
+  reject_small_prefixes();
+  reject_long_aspaths();
+  reject_roa6_invalid();
+  if net = ::/0 then reject;
+  {% if pref_src_v6 %}krt_prefsrc = {{ pref_src_v6 }};{% endif %}
+  honor_graceful_shutdown();
+  bgp_large_community.delete([(207960, 0, *)]);
+  accept;
+}
+
+function internal_in_v4() {
+  reject_bogon_asns_int();
+  reject_bogon_prefixes_v4_int();
+  reject_long_aspaths();
+  if net = 0.0.0.0/0 then reject;
+  {% if pref_src_v4 %}krt_prefsrc = {{ pref_src_v4 }};{% endif %}
+  honor_graceful_shutdown();
+  accept;
+}
+function internal_in_v4_small()
+prefix set announce_prefixes;
+{
+  announce_prefixes = OWN_PREFIXES_V4;
+  reject_bogon_asns_int();
+  reject_bogon_prefixes_v4_int();
+  reject_long_aspaths();
+  if net = 0.0.0.0/0 then reject;
+  {% if pref_src_v4 %}krt_prefsrc = {{ pref_src_v4 }};{% endif %}
+  honor_graceful_shutdown();
+  if (net ~ announce_prefixes) then {
+    accept;
+  } else if (net ~ 172.30.0.0/16) then {
+    accept;
+  } else {
+    reject;
+  }
+}
+function internal_in() {
+  reject_bogon_asns_int();
+  reject_bogon_prefixes_int();
+  reject_long_aspaths();
+  if net = ::/0 then reject;
+  {% if pref_src_v6 %}krt_prefsrc = {{ pref_src_v6 }};{% endif %}
+  honor_graceful_shutdown();
+  accept;
+}
+
+{% for inc in incs %}
+include "{{ inc }}";
+{% endfor %}

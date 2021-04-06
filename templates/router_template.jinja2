@@ -1,0 +1,123 @@
+function filter_{{ ixp }}_as{{ peer_asn }}_asn_path() {
+    {% if as_filter is not none %}
+        if (bgp_path !~ [{% for asn in as_filter %} {{ asn }}{% if not loop.last %},{% endif %}{% endfor %} ]) then {
+            print "Would reject: Invalid ASNs found in path from {{ peer_name }} - AS{{ peer_asn }} ", net, " ", bgp_path;
+            #reject;
+        }
+    {% endif %}
+}
+
+filter filter_{{ ixp }}_as{{ peer_asn }}_v4_import {
+    {% if v4_prefix_filter is none or v4_prefix_filter %}
+        bgp_large_community.add(({{ our_asn }},0,{{ peer_asn }}));
+        bgp_large_community.add(({{ our_asn }},1,{{ relationship.value }})); # {{ relationship.name }}
+
+        {% if import_extra %}{{ import_extra }}{% endif %}
+        filter_{{ ixp }}_as{{ peer_asn }}_asn_path();
+
+        {% if v4_prefix_filter %}
+            if (net !~ [{% for prefix in v4_prefix_filter %} {{ prefix.network }}/{{ prefix.prefix }}{% if prefix.le %}{% raw %}{{% endraw %}{{ prefix.ge }},{{ prefix.le }}{% raw %}}{% endraw %}{% endif %}{% if not loop.last %},{% endif %}{% endfor %} ]) then {
+                print "Would reject: Invalid prefix from {{ peer_name }} - AS{{ peer_asn }} ", net, " ", bgp_path;
+                #reject;
+            }
+        {% endif %}
+
+        external_in_v4();
+    {% else %}
+       reject;
+    {% endif %}
+}
+filter filter_{{ ixp }}_as{{ peer_asn }}_v4_export {
+    {% if export_extra %}{{ export_extra }}{% endif %}
+
+    {% if relationship == relationship.DOWNSTREAM %}
+        downstream_out_v4();
+    {% else %}
+        external_out_v4();
+    {% endif %}
+}
+
+filter filter_{{ ixp }}_as{{ peer_asn }}_v6_import {
+    {% if v6_prefix_filter is none or v6_prefix_filter %}
+        bgp_large_community.add(({{ our_asn }},0,{{ peer_asn }}));
+        bgp_large_community.add(({{ our_asn }},1,{{ relationship.value }})); # {{ relationship.name }}
+
+        {% if import_extra %}{{ import_extra }}{% endif %}
+        filter_{{ ixp }}_as{{ peer_asn }}_asn_path();
+        
+        {% if v6_prefix_filter %}
+            if (net !~ [{% for prefix in v6_prefix_filter %} {{ prefix.network }}/{{ prefix.prefix }}{% if prefix.le %}{% raw %}{{% endraw %}{{ prefix.ge }},{{ prefix.le }}{% raw %}}{% endraw %}{% endif %}{% if not loop.last %},{% endif %}{% endfor %} ]) then {
+                print "Would reject: Invalid prefix from {{ peer_name }} - AS{{ peer_asn }} ", net, " ", bgp_path;
+                #reject;
+            }
+        {% endif %}
+
+        external_in();
+    {% else %}
+       reject;
+    {% endif %}
+}
+filter filter_{{ ixp }}_as{{ peer_asn }}_v6_export {
+    {% if export_extra %}{{ export_extra }}{% endif %}
+
+    {% if relationship == relationship.DOWNSTREAM %}
+        downstream_out();
+    {% else %}
+        external_out();
+    {% endif %}
+}
+
+template bgp {{ ixp }}_as{{ peer_asn }}_v4 {
+    confederation {{ our_asn }};
+    confederation member no;
+    ipv4 {
+        import keep filtered yes;
+        {% if max_prefix_v4 %}
+            receive limit {{ max_prefix_v4 }};
+        {% endif %}
+        import filter filter_{{ ixp }}_as{{ peer_asn }}_v4_import;
+        export filter filter_{{ ixp }}_as{{ peer_asn }}_v4_export;
+    };
+}
+template bgp {{ ixp }}_as{{ peer_asn }}_v6 {
+    confederation {{ our_asn }};
+    confederation member no;
+    ipv6 {
+        import keep filtered yes;
+        {% if max_prefix_v6 %}
+            receive limit {{ max_prefix_v6 }};
+        {% endif %}
+        import filter filter_{{ ixp }}_as{{ peer_asn }}_v6_import;
+        export filter filter_{{ ixp }}_as{{ peer_asn }}_v6_export;
+    };
+}
+
+{% for router in routers %}
+    {% if router.v4_ip is not none and our_v4_ip is not none %}
+        protocol bgp {{ ixp }}_as{{ peer_asn }}_v4_{{ loop.index }} from {{ ixp }}_as{{ peer_asn }}_v4 {
+            description "{{ ixp_name }} - {{ peer_name }} - AS{{ peer_asn }} - IPv4 - Router {{ loop.index }}";
+            local {{ our_v4_ip }} as {{ local_asn }};
+            neighbor {{ router.v4_ip }} as {% if router.peer_asn %}{{ router.peer_asn }}{% else %}{{ peer_asn }}{% endif %};
+            {% if router.password %}
+                password "{{ router.password }}";
+            {% endif %}
+            {% if router.multihop %}
+                multihop {{ router.multihop }};
+            {% endif %}
+        }
+    {% endif %}
+    {% if router.v6_ip is not none and our_v6_ip is not none %}
+        protocol bgp {{ ixp }}_as{{ peer_asn }}_v6_{{ loop.index }} from {{ ixp }}_as{{ peer_asn }}_v6 {
+            description "{{ ixp_name }} - {{ peer_name }} - AS{{ peer_asn }} - IPv6 - Router {{ loop.index }}";
+            local {{ our_v6_ip }} as {{ local_asn }};
+            neighbor {{ router.v6_ip }} as {% if router.peer_asn %}{{ router.peer_asn }}{% else %}{{ peer_asn }}{% endif %};
+            {% if router.password %}
+                password "{{ router.password }}";
+            {% endif %}
+            {% if router.multihop %}
+                multihop {{ router.multihop }};
+            {% endif %}
+        }
+    {% endif %}
+
+{% endfor %}

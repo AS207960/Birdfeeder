@@ -1,31 +1,123 @@
-public: # About you
+about:
   asn: 207960
-boxes:
-  core1_fra1:
-    ips: # Our IP's
-      v4: "45.129.95.3"
-      v6: "2a0d:1a40:7900:8::1"
-    internal:
-    native:
-    ixs:
-      KleyReX:
-        ips: # Internal IP for IXP
+ixps:
+  kleyrex:
+    pdb_id: 123
+    rs_asn: 31142
+  locix_fra:
+    pdb_id: 2084
+    rs_asn: 202409
+  stacix:
+    pdb_id: 3211
+    rs_asn: 61020
+peers:
+  42:
+    relationship: peering
+    ixps:
+      - locix_fra
+  3856:
+    relationship: peering
+    ixps:
+      - locix_fra
+  6939:
+    relationship: transit
+    ixps:
+      - kleyrex
+      - locix_fra
+      - stacix
+    pnis:
+      router1:
+        routers:
+          - v6: "2001:470:11:35::1"
+  13335:
+    relationship: peering
+    ixps:
+      - kleyrex
+  20473:
+    relationship: transit
+    pnis:
+      router2:
+        routers:
+          - v4: "1.2.3.4"
+            v6: "2001:0db8::1"
+            peer_asn: 64515
+            password: "a password"
+            multihop: 2
+        import_extra: |
+          bgp_path.delete(64515);
+          bgp_path.delete(65534);
+  34854:
+    relationship: transit
+    ixps:
+  34927:
+    relationship: transit
+    pnis:
+      core1_fra1:
+        routers:
+          - v4: "193.148.249.1"
+            v6: "2a0c:9a40:1::1"
+        export_extra: |
+          bgp_community.add((34927,9130));
+          bgp_community.add((0,6939));
+          bgp_ext_community.add((rt,0,6939));
+          bgp_large_community.add((6695,0,6939));
+  41051:
+    relationship: transit
+    ixps:
+      - locix_fra
+  136918:
+    relationship: downstream
+    ixps:
+      - kleyrex
+      - locix_fra
+  41051:
+    relationship: transit
+    ixps:
+      - locix_fra
+  136918:
+    relationship: downstream
+    ixps:
+      - kleyrex
+      - locix_fra
+  211579:
+    relationship: downstream
+    ixps:
+      - locix_fra
+routers:
+  router1:
+    router_id: "1.2.3.4"
+    hostname: router1.example.net
+    ssh_user: user
+    local_asn: 64512
+    prefsrc:
+      v4: "1.2.3.4"
+      v6: "2001:0db9::1"
+  router2:
+    router_id: "1.2.3.4"
+    hostname: router2.example.net
+    ssh_user: user
+    local_asn: 64513
+    prefsrc:
+      v4: "1.2.3.4"
+      v6: "2001:0db9::1"
+  router3:
+    router_id: "1.2.3.4"
+    hostname: router3.example.net
+    ssh_user: user
+    local_asn: 64517
+    prefsrc:
+      v4: "1.2.3.4"
+      v6: "2001:0db9::1"
+    ixps:
+      kleyrex:
+        ips:
           v4: "193.189.83.70"
           v6: "2001:7f8:33::a120:7960:1"
-        peers:
-          "6939":
-            ips:
-              v4: "193.189.82.134"
-              v6: "2001:7f8:33::a100:6939:1"
-          "13335":
-            ips:
-              v4: "193.189.82.195"
-              v6: "2001:7f8:33::a101:3335:1"
-      LocIX FRA:
-        ips: # Internal IP for IXP
-          v4: ""
-          v6: ""
-        peers:
-peeringdb:
-  user: ""
-  pass: ""
+      locix_fra:
+        ips:
+          v4: "185.1.166.240"
+          v6: "2001:7f8:f2:e1:0:20:7960:1"
+      stacix:
+        ips:
+          v4: "185.1.180.18"
+          v6: "2001:7f8:fd::18"

@@ -1,0 +1,27 @@
+protocol bgp internal_{{ peer_name }} {
+  description "Internal - {{ peer_name }}";
+  local as {{ local_asn }};
+  confederation {{ our_asn }};
+  confederation member yes;
+  neighbor {{ peer_ip }} as {{ peer_asn }};
+  ipv6 {
+    import keep filtered yes;
+    import filter {
+      internal_in_v4();
+    };
+    export filter {
+      internal_out_v4();
+    };
+    next hop self yes;
+  };
+  ipv4 {
+    import keep filtered yes;
+    import filter {
+      internal_in();
+    };
+    export filter {
+      internal_out();
+    };
+    next hop self yes;
+  };
+}
