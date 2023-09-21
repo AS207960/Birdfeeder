@@ -1,6 +1,30 @@
-define OWN_PREFIXES_V4 = [{% for prefix in prefix_filter_v4 %} {{ prefix.network }}/{{ prefix.prefix }}+{% if not loop.last %},{% endif %}{% endfor %} ];
-define OWN_PREFIXES = [{% for prefix in prefix_filter_v6 %} {{ prefix.network }}/{{ prefix.prefix }}+{% if not loop.last %},{% endif %}{% endfor %} ];
+define OWN_PREFIXES_V4 = [{% for prefix in prefix_filter_v4 %}
+    {{ prefix.network }}/{{ prefix.prefix }}+{% if not loop.last %},{% endif %}{% endfor %}
+];
+define OWN_PREFIXES = [{% for prefix in prefix_filter_v6 %}
+    {{ prefix.network }}/{{ prefix.prefix }}+{% if not loop.last %},{% endif %}{% endfor %}
+];
 
-define ANNOUNCE_PREFIXES = [{% for prefix in prefix_filter_v6 %} {{ prefix.network }}/{{ prefix.prefix }}{% if prefix.le %}{% raw %}{{% endraw %}{{ prefix.ge }},{{ prefix.le }}{% raw %}}{% endraw %}{% endif %}{% if not loop.last %},{% endif %}{% endfor %} ];
-define ANNOUNCE_PREFIXES_V4 = [{% for prefix in prefix_filter_v4 %} {{ prefix.network }}/{{ prefix.prefix }}{% if prefix.le %}{% raw %}{{% endraw %}{{ prefix.ge }},{{ prefix.le }}{% raw %}}{% endraw %}{% endif %}{% if not loop.last %},{% endif %}{% endfor %} ];
-define ANNOUNCE_ASNS = [{% for asn in as_filter %} {{ asn }}{% if not loop.last %},{% endif %}{% endfor %} ];
+define ANNOUNCE_PREFIXES = [{% for prefix in prefix_filter_v6 %}
+    {{ prefix.network }}/{{ prefix.prefix }}{% if prefix.le %}{% raw %}{{% endraw %}{{ prefix.ge }},{{ prefix.le }}{% raw %}}{% endraw %}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}
+];
+define ANNOUNCE_PREFIXES_V4 = [{% for prefix in prefix_filter_v4 %}
+    {{ prefix.network }}/{{ prefix.prefix }}{% if prefix.le %}{% raw %}{{% endraw %}{{ prefix.ge }},{{ prefix.le }}{% raw %}}{% endraw %}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}
+];
+define ANNOUNCE_ASNS = [{% for asn in as_filter %}
+    {{ asn }}{% if not loop.last %},{% endif %}{% endfor %}
+];
+
+{% if do_not_route_filter %}
+    define DO_NOT_ROUTE_PREFIXES = [{% if do_not_route_filter.v6_prefixes %}{% for prefix in do_not_route_filter.v6_prefixes %}
+        {{ prefix.network }}/{{ prefix.prefix }}{% if prefix.le %}{% raw %}{{% endraw %}{{ prefix.ge }},{{ prefix.le }}{% raw %}}{% endraw %}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}
+        {% else %}::/128{% endif %}
+    ];
+    define DO_NOT_ROUTE_PREFIXES_V4 = [{% if do_not_route_filter.v4_prefixes %}{% for prefix in do_not_route_filter.v4_prefixes %}
+        {{ prefix.network }}/{{ prefix.prefix }}{% if prefix.le %}{% raw %}{{% endraw %}{{ prefix.ge }},{{ prefix.le }}{% raw %}}{% endraw %}{% endif %}{% if not loop.last %},{% endif %}{% endfor %}
+        {% else %}0.0.0.0/32{% endif %}
+    ];
+    define DO_NOT_ROUTE_ASNS = [{% for asn in do_not_route_filter.as_filter %}
+        {{ asn }}{% if not loop.last %},{% endif %}{% endfor %}
+    ];
+{% endif %}

@@ -10,8 +10,8 @@ define BOGON_PREFIXES_V4_INT = [ 0.0.0.0/8+, 127.0.0.0/8+, 169.254.0.0/16+, 192.
 define BOGON_PREFIXES = [ ::/8+, 0100::/64+, 2001:2::/48+, 2001:10::/28+, 2001:db8::/32+, 2002::/16+, 3ffe::/16+, fc00::/7+, fe80::/10+, fec0::/10+, ff00::/8+ ];
 define BOGON_PREFIXES_INT = [ ::/8+, 0100::/64+, 2001:2::/48+, 2001:10::/28+, 2001:db8::/32+, 2002::/16+, 3ffe::/16+, fe80::/10+, fec0::/10+, ff00::/8+ ];
 
-define NOT_OURS_PREFIXES = [ 2001:7f8:33::/48+, 2001:7f8:f2::/48+, 2a0c:9a40:1::/48, 2001:470:11:35::/64+, 2a0e:46c6:0:8::/64+, 2602:fed2:fff:ffff::/64+, 2001:7f8:d0::/48+, 2001:7f8:da::/64+, 2001:19f0:7402:cc7::/64+ ];
-define NOT_OURS_PREFIXES_V4 = [ 193.189.82.0/23+, 185.1.166.0/23+, 193.148.249.0/24+ ];
+define NOT_OURS_PREFIXES = [ 2001:7f8:33::/48+, 2001:7f8:f2::/48+, 2a0c:9a40:1::/48, 2001:470:11:35::/64+, 2a0e:46c6:0:8::/64+, 2602:fed2:fff:ffff::/64+, 2001:7f8:d0::/48+, 2001:7f8:da::/64+, 2001:19f0:7402:cc7::/64+, 2602:fed2:fff:ffff::/64+, 2001:7f8:fd::/48+ ];
+define NOT_OURS_PREFIXES_V4 = [ 193.189.82.0/23+, 185.1.166.0/23+, 193.148.249.0/24+, 185.1.180.0/24+, 185.1.136.0/24+, 103.105.48.0/24+ ];
 
 function reject_not_ours()
 prefix set not_ours;
@@ -116,6 +116,36 @@ function reject_non_downstream_source() {
   }
 }
 
+function reject_do_not_route()
+prefix set do_not_route;
+{
+  do_not_route = DO_NOT_ROUTE_PREFIXES;
+  if (net ~ do_not_route) then {
+    print "Reject: should not route ", net, " ", bgp_path;
+    reject;
+  }
+}
+
+function reject_do_not_route_v4()
+prefix set do_not_route;
+{
+  do_not_route = DO_NOT_ROUTE_PREFIXES_V4;
+  if (net ~ do_not_route) then {
+    print "Reject: should not route ", net, " ", bgp_path;
+    reject;
+  }
+}
+
+function reject_do_not_route_asns()
+int set do_not_route;
+{
+  do_not_route = DO_NOT_ROUTE_ASNS;
+  if ( bgp_path ~ do_not_route ) then {
+    print "Reject: should not route ", net, " ", bgp_path;
+    reject;
+  }
+}
+
 protocol direct {
   ipv6;
   ipv4;
@@ -142,6 +172,7 @@ protocol device {
 protocol static {
   ipv4;
   route 45.129.95.0/24 reject;
+  #route 193.3.165.0/24 reject;
 }
 
 protocol static {
@@ -150,6 +181,8 @@ protocol static {
   route 2a0d:1a40:7901::/48 reject;
   route 2a0e:1cc1::/48 reject;
   route 2a0e:1cc1:1::/48 reject;
+  route 2001:678:fc8::/48 reject;
+  route 2a11:f2c0::/48 reject;
 }
 
 roa4 table r4;
@@ -158,7 +191,7 @@ protocol rpki routinator {
   roa4 { table r4; };
   roa6 { table r6; };
 
-  remote 2a0d:1a40:7900:2::1 port 3323;
+  remote "rtr.routinator.as207960.net" port 3323;
 
   retry keep 90;
   refresh keep 900;
@@ -249,7 +282,6 @@ function internal_out_v4() {
   reject_bogon_prefixes_v4_int();
   if net = 0.0.0.0/0 then reject;
   bgp_path.prepend(207960);
-  bgp_local_pref = preference;
   accept;
 }
 function internal_out() {
@@ -258,7 +290,6 @@ function internal_out() {
   reject_bogon_prefixes_int();
   if net = ::/0 then reject;
   bgp_path.prepend(207960);
-  bgp_local_pref = preference;
   accept;
 }
 
@@ -268,10 +299,11 @@ function external_in_v4() {
   reject_small_prefixes_v4();
   reject_long_aspaths();
   reject_roa4_invalid();
+  reject_do_not_route_v4();
+  reject_do_not_route_asns();
   if net = 0.0.0.0/0 then reject;
   {% if pref_src_v4 %}krt_prefsrc = {{ pref_src_v4 }};{% endif %}
   honor_graceful_shutdown();
-  bgp_large_community.delete([(207960, 0, *)]);
   accept;
 }
 function external_in() {
@@ -280,10 +312,11 @@ function external_in() {
   reject_small_prefixes();
   reject_long_aspaths();
   reject_roa6_invalid();
+  reject_do_not_route();
+  reject_do_not_route_asns();
   if net = ::/0 then reject;
   {% if pref_src_v6 %}krt_prefsrc = {{ pref_src_v6 }};{% endif %}
   honor_graceful_shutdown();
-  bgp_large_community.delete([(207960, 0, *)]);
   accept;
 }
 
@@ -291,6 +324,8 @@ function internal_in_v4() {
   reject_bogon_asns_int();
   reject_bogon_prefixes_v4_int();
   reject_long_aspaths();
+  reject_do_not_route_v4();
+  reject_do_not_route_asns();
   if net = 0.0.0.0/0 then reject;
   {% if pref_src_v4 %}krt_prefsrc = {{ pref_src_v4 }};{% endif %}
   honor_graceful_shutdown();
@@ -303,6 +338,8 @@ prefix set announce_prefixes;
   reject_bogon_asns_int();
   reject_bogon_prefixes_v4_int();
   reject_long_aspaths();
+  reject_do_not_route_v4();
+  reject_do_not_route_asns();
   if net = 0.0.0.0/0 then reject;
   {% if pref_src_v4 %}krt_prefsrc = {{ pref_src_v4 }};{% endif %}
   honor_graceful_shutdown();
@@ -318,6 +355,8 @@ function internal_in() {
   reject_bogon_asns_int();
   reject_bogon_prefixes_int();
   reject_long_aspaths();
+  reject_do_not_route();
+  reject_do_not_route_asns();
   if net = ::/0 then reject;
   {% if pref_src_v6 %}krt_prefsrc = {{ pref_src_v6 }};{% endif %}
   honor_graceful_shutdown();
